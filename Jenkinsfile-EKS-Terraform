@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Checkout from Git') {
             steps {
-                git branch: 'master', url: 'https://github.com/ec2tech-projects/Project-3.git'
+                git branch: 'main', url: 'https://github.com/ec2tech-projects/Project-3.git'
             }
         }
         stage('Initializing Terraform') {
