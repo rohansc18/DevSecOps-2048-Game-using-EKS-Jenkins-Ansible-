@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: game-2048
+spec:
+  selector:
+    matchLabels:
+      app: game-2048
+  replicas: 1 
+  template: 
+    metadata:
+      labels:
+        app: game-2048
+    spec:
+      containers:
+      - name: game-2048
+        image: apatranobis59/2048-game:latest
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: game-2048
+spec:
+  type: LoadBalancer
+  selector:
+    app: game-2048
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 80
