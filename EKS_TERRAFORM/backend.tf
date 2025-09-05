@@ -6,12 +6,5 @@ terraform {
     
     use_lockfile = true
   }
-  required_version = ">=1.5.0"
   
-  required_providers {
-    aws = {
-      version = ">= 6.0.0"
-      source  = "hashicorp/aws"
-    }
-  }
 }
