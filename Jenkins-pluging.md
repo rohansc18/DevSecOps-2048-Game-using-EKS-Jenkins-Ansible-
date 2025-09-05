@@ -32,4 +32,7 @@ To set up a fully functional CI/CD pipeline using Jenkins, ensure the following 
 
 14 → Ansible
 
+15 → Terraform
+
+16 → Pipleline Stage View
 
