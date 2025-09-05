@@ -1,6 +1,6 @@
 ---
 - name: Deploy Kubernetes Application
-  hosts: local # Replace with your target Kubernetes master host or group
+  hosts: all 
   gather_facts: yes  # Gather facts about the target host
 
   tasks:

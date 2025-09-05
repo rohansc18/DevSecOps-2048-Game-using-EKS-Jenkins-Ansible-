@@ -37,13 +37,21 @@ pipeline {
         
         stage('Ansible Docker') {
             steps {
-                dir('Ansible'){
-                  script {
-                        ansiblePlaybook credentialsId: 'SSH', disableHostKeyChecking: true, installation: 'ansible', inventory: '/etc/ansible/', playbook: 'docker.yaml'
-                    }     
-                }    
+                dir('Ansible') {
+                    script {
+                        withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                            ansiblePlaybook credentialsId: 'SSH',
+                                            disableHostKeyChecking: true,
+                                            installation: 'ansible',
+                                            inventory: '/etc/ansible/',
+                                            playbook: 'docker.yaml',
+                                            extras: "-e DOCKER_USER=$DOCKER_USER -e DOCKER_PASS=$DOCKER_PASS"
+                        }
+                    }
+                }
             }
         }
+
         stage("TRIVY Image Scan") {
             steps {
                 sh 'trivy image apatranobis59/2048-game:latest > trivyimage.txt' 
