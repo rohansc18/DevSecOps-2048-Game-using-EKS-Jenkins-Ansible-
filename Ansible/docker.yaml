@@ -29,4 +29,4 @@
       command: docker push "{{ docker_username }}/2048-game:latest"
 
     - name: Run container
-      command: docker run -d --name 2048-game -p 80:80 "{{ docker_username }}/2048-game:latest"
+      command: docker run -d --name 2048-game -p 8081:80 "{{ docker_username }}/2048-game:latest"
