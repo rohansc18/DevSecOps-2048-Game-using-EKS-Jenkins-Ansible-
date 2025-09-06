@@ -12,7 +12,7 @@
       
     - name: Copy deployment.yaml to Kubernetes master
       copy:
-        src: /var/lib/jenkins/workspace/2048-game/deployment.yaml  # Assuming Jenkins workspace variable
+        src: /var/lib/jenkins/workspace/Project-3/deployment.yaml  # Assuming Jenkins workspace variable
         dest: /home/ubuntu/
       become: yes  # Use sudo for copying if required
       become_user: root  # Use a privileged user for copying if required
