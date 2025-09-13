@@ -14,7 +14,7 @@
     - name: Build Docker Image
       command: docker build -t 2048-game .
       args:
-        chdir: /var/lib/jenkins/workspace/2048-Gaming-App-pipeline
+        chdir: /var/lib/jenkins/workspace/Project-2
 
     - name: Tag image
       command: docker tag 2048-game "{{ docker_username }}/2048-game:latest"

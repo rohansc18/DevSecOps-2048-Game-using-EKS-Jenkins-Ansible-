@@ -36,3 +36,5 @@ To set up a fully functional CI/CD pipeline using Jenkins, ensure the following 
 
 16 → Pipleline Stage View
 
+## docker run -itd --name SonarQube-Server -p 9000:9000 sonarqube:lts-community
+
