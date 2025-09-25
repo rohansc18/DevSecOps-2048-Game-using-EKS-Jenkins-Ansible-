@@ -54,7 +54,7 @@ pipeline {
 
         stage("TRIVY Image Scan") {
             steps {
-                sh 'trivy image apatranobis59/2048-game:latest > trivyimage.txt' 
+                sh 'trivy image rohansc18/2048-game:latest > trivyimage.txt' 
             }
         }
 
