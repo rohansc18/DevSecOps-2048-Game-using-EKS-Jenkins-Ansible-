@@ -1,22 +1,23 @@
-- name: docker build and push
+- name: Docker build and push
   hosts: all
   become: yes
 
   vars:
     docker_username: "{{ lookup('env','DOCKER_USER') }}"
     docker_password: "{{ lookup('env','DOCKER_PASS') }}"
+    workspace_dir: "{{ lookup('env','WORKSPACE') }}"
 
   tasks:
     - name: Update apt package cache
       apt:
         update_cache: yes
 
-    - name: Build Docker Image
+    - name: Build Docker image
       command: docker build -t 2048-game .
       args:
-        chdir: /var/lib/jenkins/workspace/2048-game
+        chdir: "{{ workspace_dir }}"
 
-    - name: Tag image
+    - name: Tag Docker image
       command: docker tag 2048-game "{{ docker_username }}/2048-game:latest"
 
     - name: Log in to Docker Hub
@@ -25,8 +26,9 @@
         username: "{{ docker_username }}"
         password: "{{ docker_password }}"
 
-    - name: Push image
+    - name: Push Docker image
       command: docker push "{{ docker_username }}/2048-game:latest"
 
-    - name: Run container
+    - name: Run Docker container
       command: docker run -d --name 2048-game -p 8081:80 "{{ docker_username }}/2048-game:latest"
+
