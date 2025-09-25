@@ -21,28 +21,40 @@ resource "aws_iam_role_policy_attachment" "example-AmazonEKSClusterPolicy" {
   role       = aws_iam_role.example.name
 }
 
-#get vpc data
+# Get default VPC
 data "aws_vpc" "default" {
   default = true
 }
-#get public subnets for cluster
+
+# Get all subnets in that VPC
 data "aws_subnets" "public" {
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
   }
 }
-#cluster provision
+
+# Fetch details for each subnet to know AZ
+data "aws_subnet" "details" {
+  for_each = toset(data.aws_subnets.public.ids)
+  id       = each.value
+}
+
+# Select one subnet per AZ (ensures at least 2 AZs)
+locals {
+  az_subnet_map    = { for k, subnet in data.aws_subnet.details : subnet.availability_zone => subnet.id }
+  selected_subnets = values(local.az_subnet_map)
+}
+
+# EKS Cluster
 resource "aws_eks_cluster" "example" {
   name     = "EKS_CLOUD"
   role_arn = aws_iam_role.example.arn
 
   vpc_config {
-    subnet_ids = data.aws_subnets.public.ids
+    subnet_ids = local.selected_subnets
   }
 
-  # Ensure that IAM Role permissions are created before and deleted after EKS Cluster handling.
-  # Otherwise, EKS will not be able to properly delete EKS managed EC2 infrastructure such as Security Groups.
   depends_on = [
     aws_iam_role_policy_attachment.example-AmazonEKSClusterPolicy,
   ]
@@ -78,12 +90,12 @@ resource "aws_iam_role_policy_attachment" "example-AmazonEC2ContainerRegistryRea
   role       = aws_iam_role.example1.name
 }
 
-#create node group
+# EKS Node Group
 resource "aws_eks_node_group" "example" {
   cluster_name    = aws_eks_cluster.example.name
   node_group_name = "Node-cloud"
   node_role_arn   = aws_iam_role.example1.arn
-  subnet_ids      = data.aws_subnets.public.ids
+  subnet_ids      = local.selected_subnets
 
   scaling_config {
     desired_size = 1
@@ -92,11 +104,10 @@ resource "aws_eks_node_group" "example" {
   }
   instance_types = ["c7i-flex.large"]
 
-  # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
-  # Otherwise, EKS will not be able to properly delete EC2 Instances and Elastic Network Interfaces.
   depends_on = [
     aws_iam_role_policy_attachment.example-AmazonEKSWorkerNodePolicy,
     aws_iam_role_policy_attachment.example-AmazonEKS_CNI_Policy,
     aws_iam_role_policy_attachment.example-AmazonEC2ContainerRegistryReadOnly,
   ]
 }
+
