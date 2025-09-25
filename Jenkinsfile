@@ -15,7 +15,7 @@ pipeline {
         }
         stage('Checkout from Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/ec2tech-projects/Project-3.git'
+                git branch: 'main', url: 'https://github.com/rohansc18/DevSecOps-2048-Game-using-EKS-Jenkins-Ansible-.git'
             }
         }
         stage('Sonarqube Analysis') {
