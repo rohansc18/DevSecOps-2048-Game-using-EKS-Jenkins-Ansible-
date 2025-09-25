@@ -44,3 +44,46 @@ pipeline {
                         withCredentials([usernamePassword(
                             credentialsId: 'docker-hub-creds', 
                             usernameVariable: 'DOCKER_USER', 
+                            passwordVariable: 'DOCKER_PASS'
+                        )]) {
+                            ansiblePlaybook(
+                                credentialsId: 'SSH',                // SSH private key stored in Jenkins
+                                disableHostKeyChecking: true,        // optional
+                                installation: 'ansible',            // name of your Ansible installation in Jenkins
+                                inventory: '/etc/ansible/',
+                                playbook: 'docker.yaml',
+                                extraVars: [
+                                    DOCKER_USER: "${DOCKER_USER}",
+                                    DOCKER_PASS: "${DOCKER_PASS}"
+                                ]
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("TRIVY Image Scan") {
+            steps {
+                sh 'trivy image apatranobis59/2048-game:latest > trivyimage.txt'
+            }
+        }
+
+        stage('Kubernetes Deployment using Ansible') {
+            steps {
+                dir('Ansible') {
+                    script {
+                        ansiblePlaybook(
+                            credentialsId: 'SSH',
+                            disableHostKeyChecking: true,
+                            installation: 'ansible',
+                            inventory: '/etc/ansible/',
+                            playbook: 'kube.yaml'
+                            // Add extraVars here if needed
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
