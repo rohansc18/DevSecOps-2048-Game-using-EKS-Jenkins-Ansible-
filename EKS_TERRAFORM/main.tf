@@ -1,12 +1,13 @@
+#############################################
+# IAM Role for EKS Cluster
+#############################################
 data "aws_iam_policy_document" "assume_role" {
   statement {
     effect = "Allow"
-
     principals {
       type        = "Service"
       identifiers = ["eks.amazonaws.com"]
     }
-
     actions = ["sts:AssumeRole"]
   }
 }
@@ -21,38 +22,55 @@ resource "aws_iam_role_policy_attachment" "example-AmazonEKSClusterPolicy" {
   role       = aws_iam_role.example.name
 }
 
-# Get default VPC
+#############################################
+# Get Default VPC
+#############################################
 data "aws_vpc" "default" {
   default = true
 }
 
-# Get all subnets in that VPC
-data "aws_subnets" "public" {
+data "aws_subnets" "existing" {
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
   }
 }
 
-# Fetch details for each subnet to know AZ
+# Fetch each subnet details (to get AZs)
 data "aws_subnet" "details" {
-  for_each = toset(data.aws_subnets.public.ids)
+  for_each = toset(data.aws_subnets.existing.ids)
   id       = each.value
 }
 
-# Select one subnet per AZ (ensures at least 2 AZs)
-locals {
-  az_subnet_map    = { for k, subnet in data.aws_subnet.details : subnet.availability_zone => subnet.id }
-  selected_subnets = values(local.az_subnet_map)
+# Create an extra subnet if we have less than 2
+resource "aws_subnet" "extra_subnet" {
+  count                   = length(data.aws_subnets.existing.ids) < 2 ? 1 : 0
+  vpc_id                  = data.aws_vpc.default.id
+  cidr_block              = "172.31.96.0/20" # must not overlap with existing
+  availability_zone       = "us-east-1b"    # choose a different AZ manually
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "default-extra-subnet"
+  }
 }
 
+locals {
+  all_subnets = concat(
+    data.aws_subnets.existing.ids,
+    aws_subnet.extra_subnet[*].id
+  )
+}
+
+#############################################
 # EKS Cluster
+#############################################
 resource "aws_eks_cluster" "example" {
   name     = "EKS_CLOUD"
   role_arn = aws_iam_role.example.arn
 
   vpc_config {
-    subnet_ids = local.selected_subnets
+    subnet_ids = local.all_subnets
   }
 
   depends_on = [
@@ -60,6 +78,9 @@ resource "aws_eks_cluster" "example" {
   ]
 }
 
+#############################################
+# IAM Role for Node Group
+#############################################
 resource "aws_iam_role" "example1" {
   name = "eks-node-group-cloud"
 
@@ -67,9 +88,7 @@ resource "aws_iam_role" "example1" {
     Statement = [{
       Action = "sts:AssumeRole"
       Effect = "Allow"
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      }
+      Principal = { Service = "ec2.amazonaws.com" }
     }]
     Version = "2012-10-17"
   })
@@ -90,19 +109,22 @@ resource "aws_iam_role_policy_attachment" "example-AmazonEC2ContainerRegistryRea
   role       = aws_iam_role.example1.name
 }
 
+#############################################
 # EKS Node Group
+#############################################
 resource "aws_eks_node_group" "example" {
   cluster_name    = aws_eks_cluster.example.name
   node_group_name = "Node-cloud"
   node_role_arn   = aws_iam_role.example1.arn
-  subnet_ids      = local.selected_subnets
+  subnet_ids      = local.all_subnets
 
   scaling_config {
     desired_size = 1
     max_size     = 2
     min_size     = 1
   }
-  instance_types = ["c7i-flex.large"]
+
+  instance_types = ["t3.medium"] # safer default type
 
   depends_on = [
     aws_iam_role_policy_attachment.example-AmazonEKSWorkerNodePolicy,
@@ -110,4 +132,5 @@ resource "aws_eks_node_group" "example" {
     aws_iam_role_policy_attachment.example-AmazonEC2ContainerRegistryReadOnly,
   ]
 }
+
 
